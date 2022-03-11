@@ -1,5 +1,5 @@
 """
-GifCreator Project
+GifCreator Project V1
 
 """
 
