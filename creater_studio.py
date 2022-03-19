@@ -5,8 +5,11 @@ GifCreator Project V1
 
 import tkinter
 import os
+import cv2
 import glob
 import threading
+import numpy as np
+import ctypes
 from PIL import Image, ImageColor
 from tkinter import colorchooser
 from tkinter import filedialog
@@ -23,7 +26,7 @@ Window_COLOR = "gray30"
 GifCreator_VERSION = "GifCreator 1.0"
 
 SelectedColor = "cyan3"
-PressedColor = "SpringGreen3"
+PressedColor = "cyan4"
 DeselectedColor = "gray90"
 
 
@@ -37,7 +40,7 @@ class GifCreatorStartWindow:
         self.chosen_shape = 0
         self.num_picture_buttons = 0
         self.actual_picture = 0
-        # ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        ctypes.windll.shcore.SetProcessDpiAwareness(3)
 
     # Start-Window #####################################################################################################
     def title_bar(self):
@@ -112,6 +115,10 @@ class GifCreatorStartWindow:
         self.actual_picture = self.num_picture_buttons - 1
         # print("ende open: ", self.num_picture_buttons) # debugging
 
+        self.picture_buttons[self.actual_picture].CButton.itemconfig(self.picture_buttons[self.actual_picture].polygon,
+                                                                     fill="green3")
+        self.picture_buttons[self.actual_picture].bg = "green3"
+
         # Disable the Start-Buttons
         self.button_8x8.config(state="disabled")
         self.button_16x16.config(state="disabled")
@@ -124,89 +131,6 @@ class GifCreatorStartWindow:
         self.start_button_label.place_configure(x=60, y=10)
         self.creation_name.insert(0,
                                   self.file_location.split("/")[len(self.file_location.split("/")) - 1].split(".")[0])
-
-        """
-        file_location = filedialog.askdirectory(title="Open Project")
-        print("open folder: ", file_location)
-        files = os.listdir(file_location)
-        print(files)
-        self.filename = file_location
-        for file in os.listdir(file_location):
-            save_file = file_location + '/' + file
-            print("files in for-loop: ", save_file)
-            save_file = open(save_file, "r")
-
-            content = save_file.readlines()
-            # Take sizefactor from savefile
-            self.chosen_shape = (int(content[0]))
-            save_file.close()
-
-        print("read form: ", self.chosen_shape)
-        self.start_activated = True
-        self.start_editing(self.chosen_shape)
-        self.read_picture(self.num_picture_buttons)
-        # self.creation_name.insert(0, self.filename.split("/")[len(self.filename.split("/")) - 1].split(".")[0])
-        """
-        """
-        old function:
-        try:
-            file = filedialog.askopenfilename(title="Open Project", filetypes=[("text files", "*.txt"), ])
-            savefile = open(file, "r")
-            content = savefile.readlines()
-            # Take sizefactor from savefile
-            self.chosen_shape = (int(content[0]))
-            self.start_editing(self.chosen_shape)
-            self.start_activated = True
-
-            self.filename = file
-            print(self.filename)
-            self.creation_name.insert(0, self.filename.split("/")[len(self.filename.split("/"))-1].split(".")[0])
-
-            # print(content[1])
-            edit_color_list = content[2].split(",")
-            # print(edit_color_list)
-
-            for i in range(0, self.chosen_shape * self.chosen_shape):
-                self.edit_buttons[i].CButton.itemconfig(self.edit_buttons[i].polygon, fill=edit_color_list[i])
-                self.edit_buttons[i].bg = edit_color_list[i]
-                self.edit_buttons_colors[i] = edit_color_list[i]
-
-            save_color_list = content[1].split(",")
-            # print(save_color_list)
-
-            for i in range(0, 10):
-                self.color_buttons[i].CButton.itemconfig(self.color_buttons[i].polygon, fill=save_color_list[i])
-                self.color_buttons[i].bg = save_color_list[i]
-                self.color_buttons_colors[i] = save_color_list[i]
-
-            savefile.close()
-
-            self.button_8x8.config(state="disabled")
-            self.button_16x16.config(state="disabled")
-            self.button_32x32.config(state="disabled")
-            self.button_64x64.config(state="disabled")
-            self.open_button.config(state="disabled")
-
-            self.start_button_label.config(text="Save")
-            self.start_button_label.place_configure(x=60, y=10)
-
-        except FileNotFoundError:
-            print("send return")
-            return
-        """
-    """
-    def checkbox_public(self):
-        self.var = tkinter.BooleanVar()
-        self.var.set(True)
-        info = tkinter.Label(self.start_window.get_canvas(), text="Do you want to share your creation with others?",
-                             bg=Window_COLOR, fg="white")
-        public = tkinter.Checkbutton(self.start_window.get_canvas(), text="public", bg=Window_COLOR, fg="white",
-                                     selectcolor=Window_COLOR,
-                                     activebackground=Window_COLOR, activeforeground="white", variable=self.var,
-                                     command=lambda: print(self.var.get()))
-        info.place(x=25, y=150)
-        public.place(x=120, y=175)
-    """
 
     def creation_size(self):
         info = tkinter.Label(self.start_window.get_canvas(), text="Choose a formfactor:",
@@ -266,30 +190,24 @@ class GifCreatorStartWindow:
             self.save_picture(self.actual_picture)
 
     def save_picture(self, picture):
-        # ToDo Save and Read Colors in own file per project
-        print("saving in: ", self.file_location, picture)
         save_file = open(self.file_location + '/' + str(picture) + ".txt", "w")
-        # print("in save_picture_function:", self.edit_buttons_colors)
-        # print(self.color_buttons_colors)
-        save_file.write(str(self.chosen_shape) + "\n")
+        save_file.write(str(self.chosen_shape) + "\n")  # Saves the size-factor
         for color in self.color_buttons_colors:
-            save_file.write(color + ",")
+            save_file.write(color + ",")                # saves the colors of the color-buttons
         save_file.write("\n")
         for color in self.edit_buttons_colors:
-            save_file.write(color + ",")
+            save_file.write(color + ",")                # saves the colors of the picture-buttons
         save_file.close()
 
     def read_picture(self, picture):
-        # ToDone Read Pictures from created folder
+        # Open the File
         try:
             save_file = open(self.file_location + '/' + str(picture) + ".txt", "r")
-
+            # Reading the file
             content = save_file.readlines()
-
-            # print(content[1])
+            # Taking the 3rd line of the file for edit-buttons
             edit_color_list = content[2].split(",")
-            # print(edit_color_list)
-
+            # Changing the edit-buttons to the read colors
             for i in range(0, self.chosen_shape * self.chosen_shape):
                 self.edit_buttons[i].CButton.itemconfig(self.edit_buttons[i].polygon, fill=edit_color_list[i])
                 self.edit_buttons[i].bg = edit_color_list[i]
@@ -415,6 +333,8 @@ class GifCreatorStartWindow:
 
         if not self.open_creation:
             self.create_picture_button_command()
+            self.picture_buttons[0].CButton.itemconfig(self.picture_buttons[0].polygon, fill="green3")
+            self.picture_buttons[0].bg = "green3"
 
     def edit_button_command(self, index):
         # print(self.actuall_color)
@@ -498,7 +418,7 @@ class GifCreatorStartWindow:
     def create_picture_buttons(self):
         add_picture_button = Ctkinter.CButton(self.picture_canvas, text="Add Picture", height=40, width=150,
                                               rounded_corners='rounded',
-                                              bg="firebrick3", fg="black", highlight_color="firebrick2",
+                                              bg="firebrick3", fg="gray90", highlight_color="firebrick2",
                                               pressing_color="firebrick3",
                                               command=self.create_picture_button_command)
         add_picture_button.place(x=70, y=45)
@@ -516,15 +436,21 @@ class GifCreatorStartWindow:
         self.picture_button_frame.place(x=10, y=98)
 
     def create_picture_button_command(self):
+        n_row = 0
+        n_column = 0
         # print(self.num_picture_buttons, "of create_picture_button_pressed")
         self.picture_buttons.append(Ctkinter.CButton(self.picture_button_frame,
-                                                     height=40, width=150,
+                                                     height=30, width=80,
                                                      rounded_corners='rounded', bg="gray",
-                                                     text="Picture " + str(self.num_picture_buttons),
+                                                     text="PicNr. " + str(self.num_picture_buttons),
                                                      command=lambda index=self.num_picture_buttons:
                                                      self.picture_button_command(index)))
-        self.picture_buttons[self.num_picture_buttons].grid(row=self.num_picture_buttons, column=0, pady=0, padx=5)
+        if n_row == 11:
+            n_column += 1
+        self.picture_buttons[self.num_picture_buttons].grid(row=self.num_picture_buttons, column=0, pady=0,
+                                                            padx=5)
         self.save_picture(self.num_picture_buttons)
+        n_row += 1
         self.num_picture_buttons += 1
 
     def picture_button_command(self, index):
@@ -575,6 +501,14 @@ class GifCreatorStartWindow:
         image.putdata(color_list, scale=10000000.0)
         image.save('Creations' + '/' + self.creation_name.get() + ".png")
 
+        # Scale up and rename picture
+        img = cv2.imread('Creations' + '/' + self.creation_name.get() + ".png", 1)
+
+        img_inter = cv2.resize(img, (500, 500), interpolation=cv2.INTER_NEAREST)
+        cv2.imwrite('Creations' + '/' + self.creation_name.get() + ".png", img_inter)
+        os.rename('Creations' + '/' + self.creation_name.get() + ".png",
+                  'Creations' + '/' + self.creation_name.get() + ".gif")
+
     def gif_button_pressed(self):
         # print(self.file_location)
         images = []
@@ -594,6 +528,33 @@ class GifCreatorStartWindow:
             # Create Image of each picture and save to images-list
             picture = Image.new("RGB", (self.chosen_shape, self.chosen_shape))
             picture.putdata(rgb_colors, scale=10000000.0)
+
+            opencv_image = cv2.cvtColor(np.array(picture, dtype=np.uint8), cv2.COLOR_RGB2BGR)
+
+            # opencv_image = numpy.array(picture)
+            # picture = cv2.resize(opencv_image, (500, 500), interpolation=cv2.INTER_NEAREST)
+
+            # 1.Step calc the size of one pixel
+            pix_size = int(512 / self.chosen_shape)
+
+            # 2. Step create a new image 3 = 3 channels
+            new_image = np.zeros((512, 512, 3), dtype=np.uint8)
+            # counter is for the y coordinates
+            for counter in range(self.chosen_shape):
+                # inner counter is for the x coordinates
+                for inner_counter in range(self.chosen_shape):
+                    # create a rectangle with the size of one pixel (pix_size) with the color of the original image
+                    cv2.rectangle(new_image, (inner_counter*pix_size, counter*pix_size),
+                                  (inner_counter*pix_size + pix_size,
+                                   counter*pix_size + pix_size),
+                                  (int(opencv_image[counter][inner_counter][0]),
+                                   int(opencv_image[counter][inner_counter][1]),
+                                   int(opencv_image[counter][inner_counter][2])),
+                                  -1, cv2.LINE_AA)  # -1 for filling the rectangle
+
+            picture = cv2.cvtColor(new_image, cv2.COLOR_BGR2RGB)
+            picture = Image.fromarray(picture)
+
             images.append(picture)
         images[0].save('Creations' + '/' + self.creation_name.get() + ".gif",
                        save_all=True, append_images=images[1:], optimize=False, duration=700, loop=0)
